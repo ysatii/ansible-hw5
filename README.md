@@ -6,6 +6,10 @@
 2. Выполните `docker pull aragast/netology:latest` —  это образ с podman, tox и несколькими пайтонами (3.7 и 3.9) внутри.
 
 
+## Проверка готовности среды  
+
+
+![рисунок 1](https://github.com/ysatii/ansible-hw5/blob/main/img/img1.jpg)
 
 ## Основная часть
 
