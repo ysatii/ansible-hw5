@@ -1,0 +1,6 @@
+---
+- name: Restart Vector
+  systemd:
+    name: vector
+    state: restarted
+  when: ansible_virtualization_type != 'docker'

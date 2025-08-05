@@ -1,0 +1,17 @@
+driver:
+  name: docker
+
+platforms:
+  - name: centos7
+    build_image: true
+    dockerfile: Dockerfile.j2
+    image: centos7-systemd
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    command: /usr/sbin/init
+
+provisioner:
+  name: ansible
+  playbooks:
+    converge: converge.yml

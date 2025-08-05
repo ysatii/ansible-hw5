@@ -1,0 +1,6 @@
+---
+vector_version: "0.34.0"
+vector_download_url: "https://packages.timber.io/vector/0.34.0/vector-0.34.0-x86_64-unknown-linux-gnu.tar.gz"
+vector_install_path: "/usr/local/bin/vector"
+vector_config_file: "/etc/vector/vector.toml"
+vector_user: "vector"

@@ -1,0 +1,117 @@
+---
+- name: Ensure Vector user exists
+  user:
+    name: "{{ vector_user }}"
+    system: yes
+    createhome: no
+    shell: /bin/false
+
+- name: Ensure necessary directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ vector_user }}"
+    group: "{{ vector_user }}"
+    mode: "0755"
+  loop:
+    - "/var/lib/vector"
+    - "/etc/vector"
+
+- name: Download Vector
+  get_url:
+    url: "{{ vector_download_url }}"
+    dest: "/tmp/vector.tar.gz"
+
+- name: Extract Vector
+  unarchive:
+    src: "/tmp/vector.tar.gz"
+    dest: "/tmp"
+    remote_src: yes
+    mode: "0755"
+
+- name: Move Vector binary to install path
+  command: mv /tmp/vector-x86_64-unknown-linux-gnu/bin/vector {{ vector_install_path }}
+  args:
+    creates: "{{ vector_install_path }}"
+
+- name: Ensure Vector is executable
+  file:
+    path: "{{ vector_install_path }}"
+    mode: "0755"
+
+- name: Deploy Vector configuration for Vector Server
+  template:
+    src: vector_vector.toml.j2
+    dest: "{{ vector_config_file }}"
+    mode: "0644"
+  when: "'vector' in group_names"
+  notify: Restart Vector
+
+- name: Deploy Vector configuration for Lighthouse
+  template:
+    src: vector_nginx_lighthouse.toml.j2
+    dest: "{{ vector_config_file }}"
+    mode: "0644"
+  when: "'lighthouse' in group_names"
+  notify: Restart Vector
+
+- name: Deploy Vector systemd service file
+  copy:
+    dest: /etc/systemd/system/vector.service
+    content: |
+      [Unit]
+      Description=Vector service
+      After=network.target
+
+      [Service]
+      User={{ vector_user }}
+      ExecStart={{ vector_install_path }} --config {{ vector_config_file }}
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Restart Vector
+
+- name: Ensure Vector user is in nginx group
+  user:
+    name: "{{ vector_user }}"
+    groups: nginx
+    append: yes
+  when: "'lighthouse' in group_names"
+
+- name: Change permissions for Nginx log directory
+  file:
+    path: /var/log/nginx
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: "0755"
+  when: "'lighthouse' in group_names"
+
+- name: Change permissions for Nginx access log
+  file:
+    path: /var/log/nginx/access.log
+    state: file
+    owner: nginx
+    group: nginx
+    mode: "0640"
+  when: "'lighthouse' in group_names"
+
+- name: Change permissions for Nginx error log
+  file:
+    path: /var/log/nginx/error.log
+    state: file
+    owner: nginx
+    group: nginx
+    mode: "0640"
+  when: "'lighthouse' in group_names"
+
+- name: Reload systemd
+  command: systemctl daemon-reexec
+
+- name: Enable and start Vector service
+  systemd:
+    name: vector
+    enabled: yes
+    state: started

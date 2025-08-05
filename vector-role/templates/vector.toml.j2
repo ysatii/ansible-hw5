@@ -1,0 +1,23 @@
+# Прием логов через сокет
+[sources.remote_logs]
+type = "socket"
+address = "127.0.0.1:6000"
+
+# Парсим логи
+[transforms.parse_logs]
+type = "remap"
+inputs = ["remote_logs"]
+source = '''
+. = parse_json!(string!(.message))
+'''
+
+# Отправляем данные в ClickHouse
+[sinks.clickhouse]
+type = "clickhouse"
+inputs = ["parse_logs"]
+endpoint = "http://localhost:8123"
+database = "logs"
+table = "vector_logs"
+compression = "gzip"
+healthcheck = true
+batch.max_bytes = 10485760

@@ -1,0 +1,74 @@
+# Источник внутренних логов Vector
+[sources.internal_logs]
+type = "internal_logs"
+
+# Трансформация внутренних логов Vector
+[transforms.process_vector_logs]
+type = "remap"
+inputs = ["internal_logs"]
+source = '''
+.host = "vector"
+.log_type = "vector"
+'''
+
+# Отправка логов Vector в ClickHouse
+[sinks.vector_clickhouse_logs]
+type = "clickhouse"
+inputs = ["process_vector_logs"]
+database = "logs"
+table = "vector_logs"
+endpoint = "http://{{ hostvars['clickhouse-01'].ansible_host }}:8123"
+compression = "gzip"
+skip_unknown_fields = true
+date_time_best_effort = true
+
+# Логирование ошибок Vector в файл
+[sinks.vector_internal_logs]
+type = "file"
+inputs = ["process_vector_logs"]
+path = "/var/log/vector-errors.log"
+encoding.codec = "json"
+
+
+# Источник: принимаем логи от другого Vector через сокет
+[sources.lighthouse_logs]
+type = "vector"
+address = "0.0.0.0:6000"
+#mode = "tcp"
+#encoding.codec = "json"  # Декодируем JSON сразу на входе
+#request.timeout_secs = 5  # Увеличиваем таймаут на прием
+
+
+# Отправка логов в консоль для отладки
+[sinks.console_output]
+type = "console"
+inputs = ["lighthouse_logs"]
+encoding.codec = "json"  # Гарантируем, что выводим нормальный JSON
+
+
+[transforms.remap_logs]
+type = "remap"
+inputs = ["lighthouse_logs"]
+source = '''
+  .timestamp = parse_timestamp!(.timestamp, "%+")
+  .host = "lighthouse to vector"
+  .log_type = "nginx"
+  if exists(.message) { .message = .message } else { .message = "no data" }
+  del(.file)
+  del(.source_type)
+'''
+
+[sinks.clickhouse]
+type = "clickhouse"
+inputs = ["remap_logs"]
+database = "logs"
+endpoint = "http://{{ hostvars['clickhouse-01'].ansible_host }}:8123"
+table = "vector_logs"
+compression = "gzip"
+batch.max_bytes = 10485760
+encoding.timestamp_format = "rfc3339"
+
+[api]
+enabled = true
+
+

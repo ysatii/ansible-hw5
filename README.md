@@ -28,6 +28,193 @@
 5. Запустите тестирование роли повторно и проверьте, что оно прошло успешно.
 5. Добавьте новый тег на коммит с рабочим сценарием в соответствии с семантическим версионированием.
 
+### Решение тестирование с помощью Molecule
+1. структура роли 
+![рисунок 2](https://github.com/ysatii/ansible-hw5/blob/main/img/img2.jpg)
+2. Инициализируем Molecule-сценарий
+ ```
+cd ~/Рабочий\ стол/ansible-hw4/playbook/roles/vector-role
+molecule init scenario --driver-name docker
+ ```
+3. листинг vector-role/molecule/default/molecule.yml
+ ```
+ driver:
+  name: docker
+
+platforms:
+  - name: centos7
+    build_image: true
+    dockerfile: Dockerfile.j2
+    image: centos7-systemd
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    command: /usr/sbin/init
+
+provisioner:
+  name: ansible
+  playbooks:
+    converge: converge.yml
+
+ ```
+4. листинг vector-role/molecule/default/converge.yml
+ ```
+ ---
+ - name: Converge
+   hosts: all
+   roles:
+     - role: vector-role
+ ```
+5. Пишем тесты в molecule/default/verify.yml
+ ```
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Check if vector binary exists
+      stat:
+        path: /usr/bin/vector
+      register: vector_stat
+
+    - name: Fail if vector binary not found
+      fail:
+        msg: "Vector binary not found in /usr/bin"
+      when: not vector_stat.stat.exists
+
+ ```
+6. Запускаем тестирование, Поднимаем контейнеры:
+ ```
+ molecule create
+ ```
+7. Удаляем все и запускаем заново
+ ```
+ molecule destroy
+ molecule test
+ ```
+ ![рисунок 3](https://github.com/ysatii/ansible-hw5/blob/main/img/img3.jpg)
+
+Для успешной прохождения курса пришлось сделать следующее
+1. листинг  playbook/roles/vector-role/meta/main.yml
+ ```
+galaxy_info:
+  role_name: vector
+  namespace: lamer
+  author: lamer
+  description: Install and configure Vector on CentOS 7
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: EL
+      versions:
+        - 7
+  galaxy_tags:
+    - logging
+    - vector
+dependencies: []
+ ```
+2. часть кода roles/vector-role/tasks/main.yaml мешало прохождению теста на идемпотентность, скачивался пакет вектор, распаковывался, и устанавливался! теперь проблемы с этим нет! все скачиваеться и перемещаеться в папку для установки, используеться маркер файл при первой распаковке!
+```
+##########################
+#- name: Extract Vector
+#  unarchive:
+#    src: /tmp/vector.tar.gz
+#    dest: /tmp
+#    remote_src: true
+#    mode: '0755'
+
+
+- name: Check if Vector already extracted
+  stat:
+    path: /tmp/vector_extracted
+  register: vector_extracted
+
+- name: Extract Vector
+  unarchive:
+    src: /tmp/vector.tar.gz
+    dest: /tmp
+    remote_src: true
+    mode: '0755'
+  when: not vector_extracted.stat.exists
+
+- name: Create marker file after extraction
+  file:
+    path: /tmp/vector_extracted
+    state: touch
+  when: not vector_extracted.stat.exists
+
+- name: Find extracted vector binary
+  find:
+    paths: /tmp
+    patterns: "vector"
+    recurse: yes
+    file_type: file
+  register: vector_binary
+
+- name: Fail if vector binary not found
+  fail:
+    msg: "Vector binary not found in extracted archive"
+  when: vector_binary.matched == 0
+
+- name: Move Vector binary to install path
+  copy:
+    src: "{{ vector_binary.files[0].path }}"
+    dest: /usr/bin/vector
+    mode: '0755'
+    remote_src: true
+
+
+
+#- name: Ensure Vector is executable
+#  file:
+#    path: /usr/local/bin/vector
+#    mode: '0755'
+#################
+```
+
+3. Создан DockerFile centos:7
+```
+FROM quay.io/centos/centos:7
+
+ENV container docker
+
+# Устанавливаем systemd
+RUN yum -y install initscripts systemd sudo && \
+    yum clean all && \
+    (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i == systemd-tmpfiles-setup.service ] || rm -f $i; done); \
+    rm -f /lib/systemd/system/multi-user.target.wants/*; \
+    rm -f /etc/systemd/system/*.wants/*; \
+    rm -f /lib/systemd/system/local-fs.target.wants/*; \
+    rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+    rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+    rm -f /lib/systemd/system/basic.target.wants/*; \
+    rm -f /lib/systemd/system/anaconda.target.wants/*
+
+VOLUME [ "/sys/fs/cgroup" ]
+CMD ["/usr/sbin/init"]
+```
+
+4. поправлен файл /vector-role/handlers/main.yaml
+
+```
+---
+- name: Restart Vector
+  systemd:
+    name: vector
+    state: restarted
+  when: ansible_virtualization_type != 'docker'
+```
+
+
+Полный вывод логава тестирования
+ ![рисунок 4](https://github.com/ysatii/ansible-hw5/blob/main/img/img4.jpg)
+ ![рисунок 5](https://github.com/ysatii/ansible-hw5/blob/main/img/img5.jpg)
+ ![рисунок 6](https://github.com/ysatii/ansible-hw5/blob/main/img/img6.jpg)
+ ![рисунок 7](https://github.com/ysatii/ansible-hw5/blob/main/img/img7.jpg)
+ ![рисунок 8](https://github.com/ysatii/ansible-hw5/blob/main/img/img8.jpg)
+ ![рисунок 9](https://github.com/ysatii/ansible-hw5/blob/main/img/img9.jpg)
+ ![рисунок 10](https://github.com/ysatii/ansible-hw5/blob/main/img/img10.jpg)
+ ![рисунок 11](https://github.com/ysatii/ansible-hw5/blob/main/img/img11.jpg)
+
 ### Tox
 
 1. Добавьте в директорию с vector-role файлы из [директории](./example).

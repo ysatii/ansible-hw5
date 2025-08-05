@@ -1,0 +1,14 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Check if vector binary exists
+      stat:
+        path: /usr/bin/vector
+      register: vector_stat
+
+    - name: Fail if vector binary not found
+      fail:
+        msg: "Vector binary not found in /usr/bin"
+      when: not vector_stat.stat.exists
+
