@@ -1,14 +1,20 @@
 ---
 - name: Verify
   hosts: all
+  gather_facts: false
   tasks:
-    - name: Check if vector binary exists
+    - name: Check if Vector binary exists
       stat:
         path: /usr/bin/vector
       register: vector_stat
 
-    - name: Fail if vector binary not found
+    - name: Fail if Vector binary not found
       fail:
         msg: "Vector binary not found in /usr/bin"
       when: not vector_stat.stat.exists
 
+    - name: Check if Vector config exists
+      stat:
+        path: /etc/vector/vector.toml
+      register: vector_config
+ 

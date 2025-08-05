@@ -215,6 +215,45 @@ CMD ["/usr/sbin/init"]
  ![рисунок 10](https://github.com/ysatii/ansible-hw5/blob/main/img/img10.jpg)
  ![рисунок 11](https://github.com/ysatii/ansible-hw5/blob/main/img/img11.jpg)
 
+для полного выполнения задания расширим verify.yml
+```
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check if Vector binary exists
+      stat:
+        path: /usr/bin/vector
+      register: vector_stat
+
+    - name: Fail if Vector binary not found
+      fail:
+        msg: "Vector binary not found in /usr/bin"
+      when: not vector_stat.stat.exists
+
+    - name: Check if Vector config exists
+      stat:
+        path: /etc/vector/vector.toml
+      register: vector_config
+ 
+
+
+```
+и проведем тесты снова ! 
+**Роль работает только под операциолнной системой Centos7**
+Также заметим что работа приложения в контейнере и на реальной операционной системе отличаються! 
+Исходно роли прорабатывались для для операционной системы !
+работа сделана на основе предыдущей работы https://github.com/ysatii/ansible-hw4/ 
+роль https://github.com/ysatii/ansible-hw5/tree/main/vector-role
+Молекула  https://github.com/ysatii/ansible-hw5/tree/main/vector-role/molecule/default
+
+
+
+
+
+
+
 ### Tox
 
 1. Добавьте в директорию с vector-role файлы из [директории](./example).
