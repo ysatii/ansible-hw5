@@ -205,7 +205,7 @@ CMD ["/usr/sbin/init"]
 ```
 
 
-Полный вывод логава тестирования
+5. Полный вывод логава тестирования
  ![рисунок 4](https://github.com/ysatii/ansible-hw5/blob/main/img/img4.jpg)
  ![рисунок 5](https://github.com/ysatii/ansible-hw5/blob/main/img/img5.jpg)
  ![рисунок 6](https://github.com/ysatii/ansible-hw5/blob/main/img/img6.jpg)
@@ -215,7 +215,7 @@ CMD ["/usr/sbin/init"]
  ![рисунок 10](https://github.com/ysatii/ansible-hw5/blob/main/img/img10.jpg)
  ![рисунок 11](https://github.com/ysatii/ansible-hw5/blob/main/img/img11.jpg)
 
-для полного выполнения задания расширим verify.yml
+6. для полного выполнения задания расширим verify.yml
 ```
 ---
 - name: Verify
@@ -248,7 +248,12 @@ CMD ["/usr/sbin/init"]
 роль https://github.com/ysatii/ansible-hw5/tree/main/vector-role
 Молекула  https://github.com/ysatii/ansible-hw5/tree/main/vector-role/molecule/default
 
-
+7. Добавим теги
+```
+git tag -a v1.0.0 -m "First stable version of vector-role with Molecule tests"
+git push origin main --tags
+```
+https://github.com/ysatii/ansible-hw5/tags 
 
 
 
