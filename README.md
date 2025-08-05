@@ -93,7 +93,7 @@ provisioner:
  ```
  ![рисунок 3](https://github.com/ysatii/ansible-hw5/blob/main/img/img3.jpg)
 
-Для успешной прохождения курса пришлось сделать следующее
+Для успешной прохождения теста сделал следующее
 1. листинг  playbook/roles/vector-role/meta/main.yml
  ```
 galaxy_info:
